@@ -3,11 +3,12 @@ uvicorn
 python-multipart
 websockets
 opencv-python==4.6.0.66
-mediapipe
-tflite-runtime
+mediapipe==0.10.14
+ai_edge_litert
 symspellpy
 deep-translator
 edge-tts
 langdetect
 gTTS
 pygame
+SpeechRecognition

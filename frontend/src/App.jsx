@@ -15,7 +15,7 @@ export default function App() {
   });
   const [translated, setTranslated] = useState("");
   const [busy, setBusy] = useState(false);
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(window.matchMedia("(prefers-color-scheme: dark)").matches);
   const [listening, setListening] = useState(false);
   const prevGesture = useRef("");
 
@@ -87,6 +87,10 @@ export default function App() {
   const speak = (text) => { if (text && text.trim().length > 1) post("/speak", { text, gender: "Male", speed: 1.0 }); };
   const applySuggestion = (w) => { if (w.trim()) post("/apply_suggestion", { word: w }); };
   const toggleGesture = () => post("/toggle_gesture");
+  const autocorrect = async () => {
+    const d = await post("/autocorrect");
+    if (d.sentence) setState((p) => ({ ...p, sentence: d.sentence }));
+  };
 
   const conf = state.confidence || 0;
 
@@ -229,6 +233,11 @@ export default function App() {
         <button onClick={translate} disabled={busy || !state.sentence.trim()}
           className={`min-h-[48px] sm:min-h-0 px-4 py-3 sm:px-5 sm:py-2.5 text-sm font-medium rounded-lg active:scale-[0.98] transition-all touch-manipulation disabled:opacity-40 ${btnPrimary}`}>
           {busy ? "Translating…" : "Translate"}
+        </button>
+        <button onClick={autocorrect} disabled={!state.sentence.trim()}
+          className={`min-h-[48px] sm:min-h-0 px-4 py-3 sm:px-5 sm:py-2.5 border text-sm font-medium rounded-lg active:scale-[0.98] transition-all touch-manipulation disabled:opacity-40 ${btnOutline}`}
+          title="Fix spelling of all words">
+          ✨ Autocorrect
         </button>
         <button onClick={() => speak(state.sentence)} disabled={state.is_speaking || !state.sentence.trim()}
           className={`min-h-[48px] sm:min-h-0 px-4 py-3 sm:px-5 sm:py-2.5 border text-sm font-medium rounded-lg active:scale-[0.98] transition-all touch-manipulation disabled:opacity-40 ${btnOutline}`}

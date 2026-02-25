@@ -7,8 +7,6 @@ import threading
 import asyncio
 import io
 import sys
-import pkg_resources
-
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,12 +25,29 @@ except ImportError:
     try:
         import tflite_runtime.interpreter as tflite
     except ImportError:
-        import tensorflow as tf
-        tflite = tf.lite
+        try:
+            import tensorflow as tf
+            tflite = tf.lite
+        except ImportError:
+            tflite = None
 
 # -------------------------
 # APPLICATON STATE & ML INIT
 # -------------------------
+
+interpreter = None
+input_details = output_details = None
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.tflite")
+if tflite and os.path.exists(MODEL_PATH):
+    interpreter = tflite.Interpreter(model_path=MODEL_PATH)
+    interpreter.allocate_tensors()
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+else:
+    if not os.path.exists(MODEL_PATH):
+        print("[SignSpeak] model.tflite not found - sign detection disabled. Use Voice Input and Quick Phrases.")
+    else:
+        print("[SignSpeak] TFLite not available - sign detection disabled.")
 
 state = {
     "sentence": " ",
@@ -46,16 +61,11 @@ state = {
 
 # SymSpell Init
 sym_spell = symspellpy.SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
-dictionary_path = pkg_resources.resource_filename("symspellpy", "frequency_dictionary_en_82_765.txt")
-bigram_path = pkg_resources.resource_filename("symspellpy", "frequency_bigramdictionary_en_243_342.txt")
+_sym_dir = os.path.dirname(symspellpy.__file__)
+dictionary_path = os.path.join(_sym_dir, "frequency_dictionary_en_82_765.txt")
+bigram_path = os.path.join(_sym_dir, "frequency_bigramdictionary_en_243_342.txt")
 sym_spell.load_dictionary(dictionary_path, term_index=0, count_index=1)
 sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
-
-# TFLite Init
-interpreter = tflite.Interpreter(model_path="model.tflite")
-interpreter.allocate_tensors()
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
 
 # MediaPipe
 mp_hands = mp.solutions.hands
@@ -73,6 +83,11 @@ prev_char = ""
 ten_prev_char = [" "] * 10
 count = -1
 vs = None
+# Auto-type: track how long the same character is held
+auto_type_char = ""
+auto_type_start = 0.0
+AUTO_TYPE_DELAY = 0.3  # seconds — near instant
+auto_type_cooldown = 0.0  # prevent rapid re-typing of same char
 
 app = FastAPI(title="SignSpeak API")
 
@@ -123,6 +138,8 @@ def detect_ASL_number(pts):
     return None
 
 def predict_character(white_img, pts):
+    if interpreter is None:
+        return "", 0.0
     white = white_img.astype(np.float32)
     white = white.reshape(1, 400, 400, 3)
     
@@ -212,37 +229,57 @@ def detect_gesture(pts):
     return ""
 
 def process_state(ch1, confidence):
-    global count, prev_char
+    global count, prev_char, auto_type_char, auto_type_cooldown
     
     state["confidence"] = round(confidence * 100, 1)
     
-    # Gesture control mode
     if state["gesture_control"]:
         state["character"] = ch1
         return
     
-    if ch1 == "next" and prev_char != "next":
-        if ten_prev_char[(count-2)%10] != "next":
-            if ten_prev_char[(count-2)%10] == "Backspace":
-                state["sentence"] = state["sentence"][:-1]
-            else:
-                state["sentence"] += ten_prev_char[(count-2)%10]
+    now = time.time()
+    valid_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
     
-    elif ch1 == "  " and prev_char != "  ":
-         state["sentence"] += "  "
+    # Instant type: new char → type immediately; same char → type after cooldown
+    if ch1 in valid_chars:
+        if ch1 != auto_type_char:
+            # New letter detected — type it NOW
+            state["sentence"] += ch1
+            auto_type_char = ch1
+            auto_type_cooldown = now
+        elif (now - auto_type_cooldown) >= 0.4:
+            # Same letter held — repeat after short cooldown
+            state["sentence"] += ch1
+            auto_type_cooldown = now
+    elif ch1 == " ":
+        if auto_type_char != " ":
+            # Autocorrect the last word before adding space
+            words = state["sentence"].strip().split(" ")
+            if words and len(words[-1]) > 1:
+                suggs = sym_spell.lookup(words[-1], symspellpy.Verbosity.CLOSEST, max_edit_distance=2)
+                if suggs:
+                    words[-1] = suggs[0].term.upper()
+                    state["sentence"] = " ".join(words)
+            state["sentence"] += " "
+            auto_type_char = " "
+            auto_type_cooldown = now
+    elif ch1 == "Backspace" and prev_char != "Backspace":
+        state["sentence"] = state["sentence"][:-1]
+        auto_type_char = ""
+    else:
+        auto_type_char = ch1
+        auto_type_cooldown = now
 
     prev_char = ch1
     state["character"] = ch1
     count += 1
     ten_prev_char[count%10] = ch1
     
-    # Run SymSpell
+    # Update suggestions
     words = state["sentence"].strip().split(" ")
-    if len(words) > 0:
-        last_word = words[-1]
-        if len(last_word.strip()) > 0:
-            suggs = sym_spell.lookup(last_word, symspellpy.Verbosity.CLOSEST, max_edit_distance=2)[:4]
-            state["suggestions"] = [s.term for s in suggs] + [" "] * (4 - len(suggs))
+    if words and words[-1].strip():
+        suggs = sym_spell.lookup(words[-1], symspellpy.Verbosity.CLOSEST, max_edit_distance=2)[:4]
+        state["suggestions"] = [s.term for s in suggs] + [" "] * (4 - len(suggs))
 
 def background_camera_loop():
     global camera_frame, vs, skeleton_frame
@@ -405,11 +442,36 @@ class TranslateRequest(BaseModel):
     src: str = "english"
     dest: str = "hindi"
 
+@app.post("/autocorrect")
+def autocorrect():
+    """Autocorrect every word in the current sentence using SymSpell."""
+    words = state["sentence"].strip().split(" ")
+    corrected = []
+    for w in words:
+        if len(w.strip()) > 1:
+            suggs = sym_spell.lookup(w, symspellpy.Verbosity.CLOSEST, max_edit_distance=2)
+            corrected.append(suggs[0].term.upper() if suggs else w)
+        else:
+            corrected.append(w)
+    state["sentence"] = " ".join(corrected) + " "
+    return {"sentence": state["sentence"]}
+
 @app.post("/translate")
 def translate(req: TranslateRequest):
+    # Autocorrect before translating
+    words = state["sentence"].strip().split(" ")
+    corrected = []
+    for w in words:
+        if len(w.strip()) > 1:
+            suggs = sym_spell.lookup(w, symspellpy.Verbosity.CLOSEST, max_edit_distance=2)
+            corrected.append(suggs[0].term.upper() if suggs else w)
+        else:
+            corrected.append(w)
+    state["sentence"] = " ".join(corrected) + " "
+    
     t = GoogleTranslator(source=req.src, target=req.dest)
     try:
-        translated = t.translate(req.text)
+        translated = t.translate(state["sentence"].strip())
         return {"translated": translated}
     except Exception as e:
         return {"error": str(e)}
