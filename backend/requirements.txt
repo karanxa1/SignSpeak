@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-multipart
+websockets
+opencv-python==4.6.0.66
+mediapipe
+tflite-runtime
+symspellpy
+deep-translator
+edge-tts
+langdetect
+gTTS
+pygame

@@ -1,0 +1,11 @@
+customtkinter
+symspellpy
+deep-translator
+edge-tts
+SpeechRecognition
+Pillow
+numpy
+opencv-python
+mediapipe
+tf-keras~=2.16
+tensorflow~=2.16
