@@ -3,6 +3,7 @@
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -18,9 +19,20 @@ body {
   transition:
     background-color 0.3s ease,
     color 0.3s ease;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 html.dark body {
   --bg-color: #0a0a0a;
   --text-color: #f5f5f5;
+}
+
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+html {
+  overflow-x: hidden;
 }

@@ -107,33 +107,33 @@ export default function App() {
   const confColor = conf > 75 ? (dark ? "#fff" : "#000") : conf > 40 ? "#888" : "#bbb";
 
   return (
-    <div className={`min-h-screen font-sans p-6 md:p-10 max-w-7xl mx-auto transition-colors duration-300 ${bg}`}>
+    <div className={`min-h-screen font-sans px-4 py-4 sm:p-6 md:p-10 max-w-7xl mx-auto transition-colors duration-300 overflow-x-hidden ${bg}`}>
 
       {/* Header */}
-      <header className={`flex items-baseline justify-between border-b pb-4 mb-8 ${borderStrong}`}>
-        <h1 className="text-2xl font-semibold tracking-tight">SignSpeak</h1>
-        <div className="flex items-center gap-3">
+      <header className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b pb-4 mb-4 sm:mb-8 ${borderStrong}`}>
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">SignSpeak</h1>
+        <div className="flex gap-2 sm:gap-3">
           <button onClick={() => setDark(!dark)}
-            className={`text-xs tracking-widest uppercase px-3 py-1.5 border rounded transition-colors ${btnGhost}`}>
+            className={`min-h-[44px] sm:min-h-0 text-xs tracking-widest uppercase px-4 py-2.5 sm:px-3 sm:py-1.5 border rounded-lg active:scale-[0.98] transition-all touch-manipulation ${btnGhost}`}>
             {dark ? "☀ Light" : "● Dark"}
           </button>
           <button onClick={toggleGesture}
-            className={`text-xs tracking-widest uppercase px-3 py-1.5 border rounded transition-colors ${
+            className={`min-h-[44px] sm:min-h-0 text-xs tracking-widest uppercase px-4 py-2.5 sm:px-3 sm:py-1.5 border rounded-lg active:scale-[0.98] transition-all touch-manipulation ${
               state.gesture_control
                 ? btnPrimary + " border-transparent"
                 : btnGhost
             }`}>
-            {state.gesture_control ? "✋ Gesture ON" : "Gesture Control"}
+            {state.gesture_control ? "✋ ON" : "Gesture"}
           </button>
         </div>
       </header>
 
       {/* Gesture Banner */}
       {state.gesture_control && (
-        <div className={`mb-6 border rounded p-4 text-sm ${border} ${card}`}>
+        <div className={`mb-4 sm:mb-6 border rounded-lg p-3 sm:p-4 text-sm ${border} ${card}`}>
           <p className="font-semibold mb-1">Gesture Control Active</p>
-          <p className={muted}>
-            👍 Thumbs Up → Translate &nbsp; ✌️ Peace → Speak &nbsp; 🖐 Open Palm → Clear
+          <p className={`text-xs sm:text-sm ${muted}`}>
+            👍 Translate &nbsp; ✌️ Speak &nbsp; 🖐 Clear
           </p>
           {state.gesture_action && (
             <p className="mt-2 font-mono text-xs">Action: <span className="font-semibold">{state.gesture_action}</span></p>
@@ -142,45 +142,47 @@ export default function App() {
       )}
 
       {/* Feeds */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-8">
         <div>
-          <p className={`text-[11px] uppercase tracking-widest mb-2 ${muted}`}>Camera</p>
-          <div className={`border rounded overflow-hidden aspect-video ${border} ${card}`}>
+          <p className={`text-[10px] sm:text-[11px] uppercase tracking-widest mb-1.5 sm:mb-2 ${muted}`}>Camera</p>
+          <div className={`border rounded-lg overflow-hidden aspect-video ${border} ${card}`}>
             <img src={`${API}/video_feed`} className="w-full h-full object-cover" alt="Camera" />
           </div>
         </div>
         <div>
-          <p className={`text-[11px] uppercase tracking-widest mb-2 ${muted}`}>Hand Tracking</p>
-          <div className={`border rounded overflow-hidden aspect-video flex items-center justify-center ${border} ${dark ? "bg-neutral-800" : "bg-neutral-100"}`}>
+          <p className={`text-[10px] sm:text-[11px] uppercase tracking-widest mb-1.5 sm:mb-2 ${muted}`}>Hand Tracking</p>
+          <div className={`border rounded-lg overflow-hidden aspect-video flex items-center justify-center ${border} ${dark ? "bg-neutral-800" : "bg-neutral-100"}`}>
             <img src={`${API}/skeleton_feed`} className="h-full object-contain" alt="Skeleton" />
           </div>
         </div>
       </section>
 
       {/* Detected + Confidence + Suggestions */}
-      <section className={`flex items-center gap-6 mb-8 border rounded p-5 ${border}`}>
-        <div className="shrink-0">
-          <p className={`text-[11px] uppercase tracking-widest mb-1 ${muted}`}>Detected</p>
-          <div className={`w-14 h-14 border-2 rounded flex items-center justify-center text-3xl font-bold ${borderStrong}`}>
-            {state.character || "—"}
+      <section className={`flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-4 sm:mb-8 border rounded-lg p-4 sm:p-5 ${border}`}>
+        <div className="flex items-center gap-4 sm:shrink-0">
+          <div>
+            <p className={`text-[10px] sm:text-[11px] uppercase tracking-widest mb-1 ${muted}`}>Detected</p>
+            <div className={`w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-lg flex items-center justify-center text-2xl sm:text-3xl font-bold ${borderStrong}`}>
+              {state.character || "—"}
+            </div>
           </div>
-        </div>
-        <div className="shrink-0 w-20">
-          <p className={`text-[11px] uppercase tracking-widest mb-1 ${muted}`}>Confidence</p>
-          <div className="flex items-end gap-1">
-            <span className="text-2xl font-bold tabular-nums" style={{ color: confColor }}>{conf}</span>
-            <span className={`text-xs mb-1 ${muted}`}>%</span>
-          </div>
-          <div className={`w-full h-1 rounded-full mt-1 overflow-hidden ${confBar}`}>
-            <div className={`h-full rounded-full transition-all duration-200 ${confFill}`} style={{ width: `${conf}%` }} />
+          <div className="sm:w-20">
+            <p className={`text-[10px] sm:text-[11px] uppercase tracking-widest mb-1 ${muted}`}>Confidence</p>
+            <div className="flex items-end gap-1">
+              <span className="text-xl sm:text-2xl font-bold tabular-nums" style={{ color: confColor }}>{conf}</span>
+              <span className={`text-xs mb-1 ${muted}`}>%</span>
+            </div>
+            <div className={`w-20 sm:w-full h-1.5 sm:h-1 rounded-full mt-1 overflow-hidden ${confBar}`}>
+              <div className={`h-full rounded-full transition-all duration-200 ${confFill}`} style={{ width: `${conf}%` }} />
+            </div>
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`text-[11px] uppercase tracking-widest mb-1 ${muted}`}>Suggestions</p>
-          <div className="flex gap-2">
+          <p className={`text-[10px] sm:text-[11px] uppercase tracking-widest mb-2 ${muted}`}>Suggestions</p>
+          <div className="flex flex-wrap gap-2">
             {state.suggestions.map((w, i) => (
               <button key={i} onClick={() => applySuggestion(w)} disabled={!w.trim()}
-                className={`px-3 py-1.5 text-sm border rounded transition-colors disabled:opacity-30 disabled:cursor-default ${btnOutline}`}>
+                className={`min-h-[44px] sm:min-h-0 px-4 py-2.5 sm:px-3 sm:py-1.5 text-sm border rounded-lg active:scale-[0.98] transition-all touch-manipulation disabled:opacity-30 disabled:cursor-default disabled:active:scale-100 ${btnOutline}`}>
                 {w.trim() || "—"}
               </button>
             ))}
@@ -189,12 +191,12 @@ export default function App() {
       </section>
 
       {/* Phrase Shortcuts */}
-      <section className="mb-6">
-        <p className={`text-[11px] uppercase tracking-widest mb-2 ${muted}`}>Quick Phrases</p>
+      <section className="mb-4 sm:mb-6">
+        <p className={`text-[10px] sm:text-[11px] uppercase tracking-widest mb-2 ${muted}`}>Quick Phrases</p>
         <div className="flex flex-wrap gap-2">
           {["Hello", "Thank you", "Help"].map((p) => (
             <button key={p} onClick={() => appendPhrase(p)}
-              className={`px-3 py-1.5 text-sm border rounded transition-colors ${btnOutline}`}>
+              className={`min-h-[44px] sm:min-h-0 px-4 py-2.5 sm:px-3 sm:py-1.5 text-sm border rounded-lg active:scale-[0.98] transition-all touch-manipulation ${btnOutline}`}>
               {p}
             </button>
           ))}
@@ -202,42 +204,46 @@ export default function App() {
       </section>
 
       {/* Output */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-8">
         <div>
-          <p className={`text-[11px] uppercase tracking-widest mb-2 ${muted}`}>Sentence</p>
-          <div className={`border rounded p-4 min-h-[80px] text-lg font-medium ${border}`}>
+          <p className={`text-[10px] sm:text-[11px] uppercase tracking-widest mb-1.5 sm:mb-2 ${muted}`}>Sentence</p>
+          <div className={`border rounded-lg p-3 sm:p-4 min-h-[72px] sm:min-h-[80px] text-base sm:text-lg font-medium ${border}`}>
             {state.sentence.trim() || <span className={`font-normal ${muted}`}>Waiting for signs…</span>}
           </div>
         </div>
         <div>
-          <p className={`text-[11px] uppercase tracking-widest mb-2 ${muted}`}>Translation</p>
-          <div className={`border rounded p-4 min-h-[80px] text-lg font-medium ${border}`}>
+          <p className={`text-[10px] sm:text-[11px] uppercase tracking-widest mb-1.5 sm:mb-2 ${muted}`}>Translation</p>
+          <div className={`border rounded-lg p-3 sm:p-4 min-h-[72px] sm:min-h-[80px] text-base sm:text-lg font-medium ${border}`}>
             {translated || <span className={`font-normal ${muted}`}>—</span>}
           </div>
         </div>
       </section>
 
       {/* Controls */}
-      <section className="flex flex-wrap gap-3">
+      <section className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3">
         <button onClick={startVoiceInput} disabled={listening}
-          className={`px-5 py-2.5 border text-sm font-medium rounded transition-colors ${listening ? "opacity-60" : ""} ${btnOutline}`}
+          className={`col-span-2 sm:col-span-1 min-h-[48px] sm:min-h-0 px-4 py-3 sm:px-5 sm:py-2.5 border text-sm font-medium rounded-lg active:scale-[0.98] transition-all touch-manipulation ${listening ? "opacity-60" : ""} ${btnOutline}`}
           title="Speak to add text">
-          {listening ? "Listening…" : "🎤 Voice Input"}
+          {listening ? "Listening…" : "🎤 Voice"}
         </button>
         <button onClick={translate} disabled={busy || !state.sentence.trim()}
-          className={`px-5 py-2.5 text-sm font-medium rounded transition-colors disabled:opacity-40 ${btnPrimary}`}>
+          className={`min-h-[48px] sm:min-h-0 px-4 py-3 sm:px-5 sm:py-2.5 text-sm font-medium rounded-lg active:scale-[0.98] transition-all touch-manipulation disabled:opacity-40 ${btnPrimary}`}>
           {busy ? "Translating…" : "Translate"}
         </button>
         <button onClick={() => speak(state.sentence)} disabled={state.is_speaking || !state.sentence.trim()}
-          className={`px-5 py-2.5 border text-sm font-medium rounded transition-colors disabled:opacity-40 ${btnOutline}`}>
-          Speak Original
+          className={`min-h-[48px] sm:min-h-0 px-4 py-3 sm:px-5 sm:py-2.5 border text-sm font-medium rounded-lg active:scale-[0.98] transition-all touch-manipulation disabled:opacity-40 ${btnOutline}`}
+          title="Speak English">
+          <span className="hidden sm:inline">Speak Original</span>
+          <span className="sm:hidden">Speak EN</span>
         </button>
         <button onClick={() => speak(translated)} disabled={state.is_speaking || !translated}
-          className={`px-5 py-2.5 border text-sm font-medium rounded transition-colors disabled:opacity-40 ${btnOutline}`}>
-          Speak Translation
+          className={`min-h-[48px] sm:min-h-0 px-4 py-3 sm:px-5 sm:py-2.5 border text-sm font-medium rounded-lg active:scale-[0.98] transition-all touch-manipulation disabled:opacity-40 ${btnOutline}`}
+          title="Speak Hindi">
+          <span className="hidden sm:inline">Speak Translation</span>
+          <span className="sm:hidden">Speak HI</span>
         </button>
         <button onClick={clear}
-          className={`px-5 py-2.5 border text-sm font-medium rounded transition-colors ml-auto ${btnGhost}`}>
+          className={`col-span-2 sm:col-span-1 sm:ml-auto min-h-[48px] sm:min-h-0 px-4 py-3 sm:px-5 sm:py-2.5 border text-sm font-medium rounded-lg active:scale-[0.98] transition-all touch-manipulation ${btnGhost}`}>
           Clear
         </button>
       </section>
