@@ -1,4 +1,5 @@
 import os
+import time
 import cv2
 import math
 import numpy as np
@@ -86,6 +87,40 @@ app.add_middleware(
 
 def distance(p1, p2):
     return math.sqrt(((p1[0] - p2[0]) ** 2) + ((p1[1] - p2[1]) ** 2))
+
+def detect_ASL_number(pts):
+    """Detect ASL digits 0-9 from hand landmarks. Returns digit str or None."""
+    thumb_up = pts[4][1] < pts[3][1]
+    index_up = pts[8][1] < pts[6][1]
+    middle_up = pts[12][1] < pts[10][1]
+    ring_up = pts[16][1] < pts[14][1]
+    pinky_up = pts[20][1] < pts[18][1]
+    thumb_touch = lambda tip_idx: distance(pts[4], pts[tip_idx]) < 35
+    # 0: closed fist
+    if not thumb_up and not index_up and not middle_up and not ring_up and not pinky_up:
+        return "0"
+    # 1: only index
+    if index_up and not middle_up and not ring_up and not pinky_up:
+        return "1"
+    # 2: index + middle
+    if index_up and middle_up and not ring_up and not pinky_up:
+        return "2"
+    # 3: index + middle + ring
+    if index_up and middle_up and ring_up and not pinky_up:
+        return "3"
+    # 4: four fingers up, thumb in
+    if index_up and middle_up and ring_up and pinky_up and not thumb_up:
+        return "4"
+    # 5: open palm
+    if thumb_up and index_up and middle_up and ring_up and pinky_up:
+        return "5"
+    # 6-9: thumb touches finger (palm out)
+    if not index_up and not middle_up and not ring_up and not pinky_up:
+        if thumb_touch(20): return "6"
+        if thumb_touch(16): return "7"
+        if thumb_touch(12): return "8"
+        if thumb_touch(8): return "9"
+    return None
 
 def predict_character(white_img, pts):
     white = white_img.astype(np.float32)
@@ -269,7 +304,10 @@ def background_camera_loop():
                 cv2.circle(inference_white, tuple(pts[i]), 2, (0, 0, 255), 1)
 
             ch1, conf = predict_character(inference_white, pts)
-            
+            num = detect_ASL_number(abs_pts) if not state["gesture_control"] else None
+            if num is not None:
+                ch1, conf = num, 0.85
+
             if state["gesture_control"]:
                 gesture = detect_gesture(abs_pts)
                 state["gesture_action"] = gesture
@@ -291,8 +329,6 @@ threading.Thread(target=background_camera_loop, daemon=True).start()
 # -------------------------
 # FASTAPI ROUTES
 # -------------------------
-
-import time
 
 def generate_feed(src="camera"):
     while True:
@@ -342,6 +378,22 @@ def clear():
     state["suggestions"] = [" ", " ", " ", " "]
     return {"success": True}
 
+class AppendTextRequest(BaseModel):
+    text: str
+
+@app.post("/append_text")
+def append_text(req: AppendTextRequest):
+    t = req.text.strip()
+    if t:
+        state["sentence"] = (state["sentence"].rstrip() + " " + t + " ").lstrip()
+        words = state["sentence"].strip().split(" ")
+        if words:
+            last = words[-1]
+            if last:
+                suggs = sym_spell.lookup(last, symspellpy.Verbosity.CLOSEST, max_edit_distance=2)[:4]
+                state["suggestions"] = [s.term for s in suggs] + [" "] * (4 - len(suggs))
+    return {"success": True}
+
 @app.post("/toggle_gesture")
 def toggle_gesture():
     state["gesture_control"] = not state["gesture_control"]
@@ -364,6 +416,8 @@ def translate(req: TranslateRequest):
 
 class SpeakRequest(BaseModel):
     text: str
+    gender: str = "Male"
+    speed: float = 1.0
 from langdetect import detect
 from gtts import gTTS
 import pygame

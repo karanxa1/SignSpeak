@@ -16,6 +16,7 @@ export default function App() {
   const [translated, setTranslated] = useState("");
   const [busy, setBusy] = useState(false);
   const [dark, setDark] = useState(false);
+  const [listening, setListening] = useState(false);
   const prevGesture = useRef("");
 
   useEffect(() => {
@@ -56,6 +57,26 @@ export default function App() {
   };
 
   const clear = () => { post("/clear"); setTranslated(""); };
+  const appendPhrase = (phrase) => { post("/append_text", { text: phrase }); };
+  const startVoiceInput = () => {
+    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
+      alert("Speech recognition not supported in this browser. Try Chrome or Edge.");
+      return;
+    }
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const rec = new Recognition();
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.lang = "en-US";
+    rec.onstart = () => setListening(true);
+    rec.onend = () => setListening(false);
+    rec.onresult = (e) => {
+      const t = e.results[0][0].transcript;
+      if (t) post("/append_text", { text: t });
+    };
+    rec.onerror = () => setListening(false);
+    rec.start();
+  };
   const translate = async () => {
     if (!state.sentence.trim()) return;
     setBusy(true);
@@ -167,6 +188,19 @@ export default function App() {
         </div>
       </section>
 
+      {/* Phrase Shortcuts */}
+      <section className="mb-6">
+        <p className={`text-[11px] uppercase tracking-widest mb-2 ${muted}`}>Quick Phrases</p>
+        <div className="flex flex-wrap gap-2">
+          {["Hello", "Thank you", "Help"].map((p) => (
+            <button key={p} onClick={() => appendPhrase(p)}
+              className={`px-3 py-1.5 text-sm border rounded transition-colors ${btnOutline}`}>
+              {p}
+            </button>
+          ))}
+        </div>
+      </section>
+
       {/* Output */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div>
@@ -185,6 +219,11 @@ export default function App() {
 
       {/* Controls */}
       <section className="flex flex-wrap gap-3">
+        <button onClick={startVoiceInput} disabled={listening}
+          className={`px-5 py-2.5 border text-sm font-medium rounded transition-colors ${listening ? "opacity-60" : ""} ${btnOutline}`}
+          title="Speak to add text">
+          {listening ? "Listening…" : "🎤 Voice Input"}
+        </button>
         <button onClick={translate} disabled={busy || !state.sentence.trim()}
           className={`px-5 py-2.5 text-sm font-medium rounded transition-colors disabled:opacity-40 ${btnPrimary}`}>
           {busy ? "Translating…" : "Translate"}
