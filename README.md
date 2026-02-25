@@ -67,51 +67,21 @@ Node.js is required to run the website interface.
 
 ---
 
-### Step 4: Run the Backend (The AI)
+### Step 4: Run the App (1-Click Startup!)
 
-You need to open your terminal and navigate to the `backend` folder inside SignSpeak.
-
-**On Mac:**
-```bash
-cd Downloads/SignSpeak/backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python3 main.py
-```
-
-**On Windows:**
-```cmd
-cd Downloads\SignSpeak\backend
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python main.py
-```
-
-*Wait until you see a message saying `Uvicorn running on http://0.0.0.0:8000`.* Keep this black window open! This is your AI brain running in the background.
-
----
-
-### Step 5: Run the Frontend (The Website)
-
-You need to open a **SECOND, completely new terminal window** (do not close the first one!).
+We have made it incredibly easy. You do not need to manually configure the frontend or backend! 
 
 **On Mac:**
-```bash
-cd Downloads/SignSpeak/frontend
-npm install
-npm run dev
-```
+1. Open the `SignSpeak` folder.
+2. Double-click the `run_mac.sh` file.
+   *(If double-clicking opens it in an editor, open your Terminal, drag & drop the `run_mac.sh` file into it, and hit Enter).*
+3. It will install everything, start the AI server, and open your browser automatically! To close the app, simply press `Ctrl+C` in that terminal.
 
 **On Windows:**
-```cmd
-cd Downloads\SignSpeak\frontend
-npm install
-npm run dev
-```
-
-Once it finishes, it will show a local web address, usually: **`http://localhost:5173`**
+1. Open the `SignSpeak` folder.
+2. Double-click the `run_windows.bat` file.
+3. Two black command windows will open (one for the AI Backend and one for the Website). The browser will open automatically!
+4. To close the app, simply hit the `X` button on those two black windows.
 
 ---
 
